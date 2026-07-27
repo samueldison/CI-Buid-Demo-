@@ -60,17 +60,17 @@ jobs:
       max-parallel: 2
       matrix:
         os: [ubuntu-22.04, ubuntu-24.04]
-        java-version: [17]
+        java: [17]
         
     runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v7
     
-    - name: Set up JDK
-      uses: actions/setup-java@v4
+    - name: Set up java
+      uses: actions/setup-java@v6
       with:
         distribution: 'temurin'
-        java-version: ${{ matrix.java-version }}
+        java-version: ${{ matrix.java }}
         cache: 'maven'
     - name: Cache Maven packages
       uses: actions/cache@v4
