@@ -25,7 +25,7 @@ COPY --from=builder /build/application/ ./
 
 USER spring
 
-EXPOSE 8084
+EXPOSE 8085
 
 # Lean execution using the launcher
 ENTRYPOINT ["java", "org.springframework.boot.loader.launch.JarLauncher"]

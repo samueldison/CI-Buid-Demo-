@@ -19,7 +19,7 @@ USER spring:spring
 COPY target/*.jar app.jar
 
 # Expose application port
-EXPOSE 8084
+EXPOSE 8085
 
 # Set the entry point for the container
 ENTRYPOINT ["java","-jar","app.jar"]

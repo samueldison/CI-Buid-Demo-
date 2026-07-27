@@ -45,7 +45,7 @@ COPY --chown=spring:spring --from=builder /build/application/ ./
 
 USER spring
 
-EXPOSE 8084
+EXPOSE 8085
 
 # Spring Boot Actuator is enabled
 HEALTHCHECK --interval=30s \
