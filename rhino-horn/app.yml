@@ -1,0 +1,77 @@
+# Instantiating a WebApplication resource for the rhino-horn application in the mlops namespace.
+# Uses the Resource Controller to manage the deployment, service and other resources for the application.
+apiVersion: kro.run/v1alpha1
+kind: WebApplication
+metadata:
+  name: rhino-horn
+  namespace: mlops
+spec:
+  targetNamespace: mlops
+  name: rhino-horn
+  image: rhino-horn:v1.0.0
+  imagePullPolicy: IfNotPresent
+  replicas: 1
+  port: 8084
+  containerPort: 8084
+  serviceType: ClusterIP
+
+  # =========================
+  # Health Probes
+  # =========================
+  health:
+    path: /actuator/health
+    livePath: /actuator/health/liveness
+    readyPath: /actuator/health/readiness
+
+  probes:
+    enabled: true
+    startup:
+      initialDelaySeconds: 10
+      periodSeconds: 5
+      failureThreshold: 30
+      timeoutSeconds: 3
+    readiness:
+      initialDelaySeconds: 5
+      periodSeconds: 5
+      failureThreshold: 3
+      timeoutSeconds: 2
+    liveness:
+      initialDelaySeconds: 15
+      periodSeconds: 10
+      failureThreshold: 3
+      timeoutSeconds: 2
+
+  # =========================
+  # Resources
+  # =========================
+  resources:
+    requests:
+      cpu: "200m"
+      memory: "256Mi"
+    limits:
+      cpu: "500m"
+      memory: "1Gi"
+
+  # =========================
+  # Autoscaling
+  # =========================
+  hpa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilization: 70
+
+  # =========================
+  # Prometheus Monitoring
+  # =========================
+  prometheus:
+    enabled: true
+    releaseLabel: prometheus-stack
+    scrape: true
+    path: /actuator/prometheus
+    port: 8084
+    scheme: http
+    serviceMonitor: true
+    serviceMonitorNamespace: monitoring
+    interval: 15s
+    scrapeTimeout: 10s

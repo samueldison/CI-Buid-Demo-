@@ -1,0 +1,31 @@
+# Pin a specific patch version for reproducibility
+ARG BASE_IMAGE=bellsoft/liberica-openjdk-alpine:17.0.12
+
+# Stage 1: Build/Extraction
+FROM ${BASE_IMAGE} AS builder
+WORKDIR /build
+COPY target/*.jar app.jar
+
+# Unpack the JAR to utilize Spring Boot's layered jars (improves caching and startup)
+RUN java -Djarmode=layertools -jar app.jar extract
+
+# Stage 2: Lean Runtime
+FROM ${BASE_IMAGE} AS runtime
+ENV WORK_DIR=/app
+WORKDIR ${WORK_DIR}
+
+# Provide Protection: Secure non-root user execution
+RUN addgroup -S spring && adduser -S spring -G spring
+
+# Optimize Resources: Copy only the extracted layers from the builder stage
+COPY --from=builder /build/dependencies/ ./
+COPY --from=builder /build/spring-boot-loader/ ./
+COPY --from=builder /build/snapshot-dependencies/ ./
+COPY --from=builder /build/application/ ./
+
+USER spring
+
+EXPOSE 8084
+
+# Lean execution using the launcher
+ENTRYPOINT ["java", "org.springframework.boot.loader.launch.JarLauncher"]

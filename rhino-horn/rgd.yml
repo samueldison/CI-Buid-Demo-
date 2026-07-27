@@ -1,0 +1,269 @@
+# This is a Resource Graph Definition (RGD) for a simple web application.
+apiVersion: kro.run/v1alpha1
+kind: ResourceGraphDefinition
+metadata:
+  name: web-application
+  annotations:
+    description: "A simple web application"
+    kro.run/allow-breaking-changes: "true"
+  
+spec:
+  schema:
+    apiVersion: v1alpha1
+    kind: WebApplication
+    scope: Namespaced
+  # =========================
+  # Core Application Settings
+  # =========================
+    spec:
+      targetNamespace: string | required=true
+      createApplicationNamespace: boolean | default=true
+      name: string | required=true
+      image: string | required=true
+      imagePullPolicy: string | default=IfNotPresent
+
+      # =====web====================
+      # Networking
+      # =========================-
+      containerPort: integer | required=true
+      port: integer | required=true
+      metricsContainerPort: integer | default=9090
+      httpPortName: string | default="http"
+      metricsPortName: string | default="metrics"
+      serviceType: string | default="ClusterIP"
+      replicas: integer | default=1
+      
+      # =========================
+      # Health Probes
+      # =========================
+      health:
+        path: string | default="/health"
+        livePath: string | default="/health"
+        readyPath: string | default="/health"
+      probes:
+        enabled: boolean | default=true
+        startup:
+          initialDelaySeconds: integer | default=10
+          periodSeconds: integer | default=5
+          failureThreshold: integer | default=30
+          timeoutSeconds: integer | default=3
+        readiness:
+          initialDelaySeconds: integer | default=5
+          periodSeconds: integer | default=5
+          failureThreshold: integer | default=3
+          timeoutSeconds: integer | default=2
+        liveness:
+          initialDelaySeconds: integer | default=15
+          periodSeconds: integer | default=10
+          failureThreshold: integer | default=3
+          timeoutSeconds: integer | default=2
+
+      # =========================
+      # Resources
+      # =========================    
+      resources:
+        requests:
+          cpu: string | default="200m"
+          memory: string | default="256Mi"
+        limits:
+          cpu: string | default="500m"
+          memory: string | default="1Gi"
+
+      # =========================
+      # Autoscaling
+      # =========================
+      hpa:
+        enabled: boolean | default=false
+        minReplicas: integer | default=2
+        maxReplicas: integer | default=5
+        targetCPUUtilization: integer | default=70  
+
+      # =========================
+      # Prometheus Monitoring
+      # =========================
+      prometheus:
+        enabled: boolean | default=true
+        releaseLabel: string | default="prometheus-stack"
+        path: string | default="/metrics"
+        port: integer | default=9090
+        scheme: string | default="http"
+        scrape: boolean | default=true
+        serviceMonitor: boolean | default=true
+        serviceMonitorNamespace: string | default="" # if empty, defaults to targetNamespace (useful if you want to centralize all ServiceMonitors in a separate namespace)
+        interval: string | default="15s"
+        scrapeTimeout: string | default="10s"   
+
+  resources:
+    # =========================
+    # 1. Namespace
+    # =========================
+    - id: appnamespace
+      includeWhen:
+        - ${schema.spec.createApplicationNamespace}
+      template:
+        apiVersion: v1
+        kind: Namespace
+        metadata:
+          name: ${schema.spec.targetNamespace}
+          
+    #===============
+    # 2. Deployment
+    #===============
+    - id: deployment
+      readyWhen:
+        - ${deployment.status.observedGeneration == deployment.metadata.generation} # Ensure the deployment controller has processed the latest changes
+        - ${deployment.status.availableReplicas >= 1} # Consider ready if at least 1 replica is available (can be adjusted based on requirements)
+        - ${deployment.status.updatedReplicas == deployment.spec.replicas} # Ensure all replicas are updated to the latest spec
+      template:
+        apiVersion: apps/v1
+        kind: Deployment
+        metadata:
+          name: ${schema.spec.name}
+          namespace: ${schema.spec.targetNamespace} # Use targetNamespace from spec
+          labels:
+            app: ${schema.spec.name}
+        spec:
+          replicas: "${schema.spec.hpa.enabled ? schema.spec.hpa.minReplicas : schema.spec.replicas}"
+          selector:
+            matchLabels:
+              app: ${schema.spec.name}
+          template:
+            metadata:
+              labels:
+                app: ${schema.spec.name}
+            spec:
+              securityContext:
+                runAsNonRoot: true
+                runAsUser: 1000
+                runAsGroup: 1000
+                seccompProfile:
+                  type: RuntimeDefault
+              volumes:
+                - name: tmp
+                  emptyDir: {}
+              containers:
+                - name: app
+                  image: ${schema.spec.image}
+                  imagePullPolicy: ${schema.spec.imagePullPolicy}
+                  securityContext:
+                    allowPrivilegeEscalation: false
+                    readOnlyRootFilesystem: true
+                    capabilities:
+                      drop: ["ALL"]
+                  volumeMounts:
+                    - name: tmp
+                      mountPath: /tmp
+                  ports:
+                    - name: ${schema.spec.httpPortName}
+                      containerPort: ${schema.spec.containerPort}
+                    - name: ${schema.spec.metricsPortName}
+                      containerPort: ${schema.spec.metricsContainerPort}
+          
+                  resources:
+                    requests:
+                      cpu: ${schema.spec.resources.requests.cpu}
+                      memory: ${schema.spec.resources.requests.memory}
+                    limits:
+                      cpu: ${schema.spec.resources.limits.cpu}
+                      memory: ${schema.spec.resources.limits.memory}
+                  startupProbe:
+                    httpGet:
+                      path: ${schema.spec.health.path}
+                      port: ${schema.spec.httpPortName}
+                    initialDelaySeconds: ${schema.spec.probes.startup.initialDelaySeconds}
+                    periodSeconds: ${schema.spec.probes.startup.periodSeconds}
+                    failureThreshold: ${schema.spec.probes.startup.failureThreshold}
+                    timeoutSeconds: ${schema.spec.probes.startup.timeoutSeconds}
+                  readinessProbe:
+                    httpGet:
+                      path: ${schema.spec.health.readyPath}
+                      port: ${schema.spec.httpPortName}
+                    initialDelaySeconds: ${schema.spec.probes.readiness.initialDelaySeconds}
+                    periodSeconds: ${schema.spec.probes.readiness.periodSeconds}
+                    failureThreshold: ${schema.spec.probes.readiness.failureThreshold}
+                    timeoutSeconds: ${schema.spec.probes.readiness.timeoutSeconds}
+                  livenessProbe:
+                    httpGet:
+                      path: ${schema.spec.health.livePath}
+                      port: ${schema.spec.httpPortName}
+                    initialDelaySeconds: ${schema.spec.probes.liveness.initialDelaySeconds}
+                    periodSeconds: ${schema.spec.probes.liveness.periodSeconds}
+                    failureThreshold: ${schema.spec.probes.liveness.failureThreshold}
+                    timeoutSeconds: ${schema.spec.probes.liveness.timeoutSeconds}
+
+    #============
+    # 3. Service
+    #============
+    - id: service
+      template:
+        apiVersion: v1
+        kind: Service
+        metadata:
+          name: ${schema.spec.name}
+          namespace: ${schema.spec.targetNamespace}
+          labels:
+            app: ${schema.spec.name}
+        spec:
+          type: ${schema.spec.serviceType}
+          selector:
+            app: ${schema.spec.name}
+          ports:
+            - name: ${schema.spec.httpPortName}
+              port: ${schema.spec.port}
+              targetPort: ${schema.spec.httpPortName}
+            - name: ${schema.spec.metricsPortName}
+              port: ${schema.spec.metricsContainerPort}
+              targetPort: ${schema.spec.metricsPortName}
+
+    #=============================
+    # 4. Horizontal Pod Autoscaler
+    #=============================
+    - id: hpa
+      includeWhen:
+        - ${schema.spec.hpa.enabled}
+      template:
+        apiVersion: autoscaling/v2
+        kind: HorizontalPodAutoscaler
+        metadata:
+          name: ${schema.spec.name}-hpa
+          namespace: ${schema.spec.targetNamespace}
+        spec:
+          scaleTargetRef:
+            apiVersion: apps/v1
+            kind: Deployment
+            name: ${schema.spec.name}
+          minReplicas: ${schema.spec.hpa.minReplicas}
+          maxReplicas: ${schema.spec.hpa.maxReplicas}
+          metrics:
+            - type: Resource
+              resource:
+                name: cpu
+                target:
+                  type: Utilization
+                  averageUtilization: ${schema.spec.hpa.targetCPUUtilization}
+ 
+    #==================
+    # 5. ServiceMonitor
+    #==================
+    - id: servicemonitor
+      includeWhen:
+        - ${schema.spec.prometheus.enabled} # Automatically created if enabled.
+      template:
+        apiVersion: monitoring.coreos.com/v1
+        kind: ServiceMonitor
+        metadata:
+          name: ${schema.spec.name}-monitor
+          namespace: "${schema.spec.prometheus.serviceMonitorNamespace != '' ? schema.spec.prometheus.serviceMonitorNamespace : schema.spec.targetNamespace}"
+          labels:
+            app: ${schema.spec.name}
+            release: ${schema.spec.prometheus.releaseLabel}
+        spec:
+          selector:
+            matchLabels:
+              app: ${schema.spec.name}
+          endpoints:
+            - port: ${schema.spec.metricsPortName} # Scrape the metrics port
+              path: ${schema.spec.prometheus.path}
+              interval: ${schema.spec.prometheus.interval}
+              scrapeTimeout: ${schema.spec.prometheus.scrapeTimeout}
+              scheme: ${schema.spec.prometheus.scheme}

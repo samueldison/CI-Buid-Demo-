@@ -1,0 +1,314 @@
+:root {
+  --primary-color: #4361ee;
+  --secondary-color: #3f37c9;
+  --accent-color: #4cc9f0;
+  --success-color: #4ade80;
+  --text-color: #1e293b;
+  --text-muted: #64748b;
+  --bg-color: #f8fafc;
+  --card-bg: rgba(255, 255, 255, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.4);
+  --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+}
+
+/* =============== GLOBAL STYLES =============== */
+body {
+  font-family: 'Poppins', sans-serif;
+  color: var(--text-color);
+  background-color: var(--bg-color);
+  line-height: 1.6;
+}
+
+/* =============== CUSTOM SCROLLBAR =============== */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--primary-color);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--secondary-color);
+}
+
+/* =============== NAVBAR =============== */
+.navbar {
+  background: rgba(67, 97, 238, 0.85) !important;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  padding: 15px 0;
+  transition: all 0.3s ease;
+}
+
+.navbar-brand {
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+/* =============== HERO SECTION =============== */
+.starter-template {
+  padding: 160px 15px 100px;
+  text-align: center;
+  background: radial-gradient(circle at 50% 50%, rgba(67, 97, 238, 0.05) 0%, transparent 70%);
+  position: relative;
+  overflow: hidden;
+}
+
+.starter-template::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle at center, var(--accent-color) 0%, transparent 40%);
+  opacity: 0.1;
+  animation: rotate 20s linear infinite;
+  z-index: -1;
+}
+
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.starter-template h1 {
+  font-size: 3.5rem;
+  font-weight: 800;
+  margin-bottom: 20px;
+  background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* =============== PIPELINE FLOW =============== */
+.pipeline-section {
+  padding: 80px 0;
+}
+
+.pipeline-flow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.pipeline-step {
+  text-align: center;
+  flex: 1;
+  min-width: 120px;
+}
+
+.step-icon {
+  width: 60px;
+  height: 60px;
+  background: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 15px;
+  font-size: 1.5rem;
+  color: var(--primary-color);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.step-icon::after {
+  content: '';
+  position: absolute;
+  top: -5px;
+  left: -5px;
+  right: -5px;
+  bottom: -5px;
+  border: 2px solid var(--accent-color);
+  border-radius: 50%;
+  opacity: 0;
+  transition: all 0.3s ease;
+}
+
+.pipeline-step:hover .step-icon {
+  background: var(--primary-color);
+  color: white;
+  transform: translateY(-5px);
+}
+
+.pipeline-step:hover .step-icon::after {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+/* =============== TOOL LOGO HOVER EFFECTS =============== */
+.tool-link-wrapper {
+  text-decoration: none;
+  display: block;
+  height: 100%;
+}
+
+.category-section {
+  margin-bottom: 60px;
+}
+
+.category-title {
+  font-weight: 700;
+  margin-bottom: 30px;
+  position: relative;
+  display: inline-block;
+}
+
+.category-title::after {
+  content: '';
+  position: absolute;
+  bottom: -8px;
+  left: 0;
+  width: 40px;
+  height: 3px;
+  background: var(--accent-color);
+  border-radius: 2px;
+}
+
+.tool-card {
+  background: var(--card-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: var(--glass-shadow);
+  text-align: center;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  height: 100%;
+  border: 1px solid var(--glass-border);
+  position: relative;
+  overflow: hidden;
+}
+
+.tool-logo {
+  height: 50px;
+  object-fit: contain;
+  margin-bottom: 15px;
+  transition: all 0.4s ease;
+}
+
+.tool-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 15px 35px rgba(67, 97, 238, 0.15);
+  border-color: var(--accent-color);
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.tool-card:hover .tool-logo {
+  transform: scale(1.1);
+}
+
+/* Status Badge */
+.status-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--success-color);
+  background: rgba(74, 222, 128, 0.1);
+  padding: 3px 10px;
+  border-radius: 20px;
+}
+
+.status-dot {
+  width: 7px;
+  height: 7px;
+  background-color: var(--success-color);
+  border-radius: 50%;
+  animation: pulse-green 2s infinite;
+}
+
+@keyframes pulse-green {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.7);
+  }
+
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 6px rgba(74, 222, 128, 0);
+  }
+
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(74, 222, 128, 0);
+  }
+}
+
+/* =============== ABOUT THE AUTHOR =============== */
+.about-section {
+  padding: 100px 0;
+}
+
+.about-card {
+  display: flex;
+  align-items: center;
+  gap: 60px;
+  background: var(--card-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 24px;
+  padding: 50px;
+  box-shadow: var(--glass-shadow);
+  border: 1px solid var(--glass-border);
+}
+
+.about-photo {
+  width: 220px;
+  height: 220px;
+  object-fit: cover;
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(67, 97, 238, 0.15);
+}
+
+/* =============== FOOTER =============== */
+.footer {
+  background: #0f172a;
+  color: white;
+  padding: 60px 0;
+  text-align: center;
+}
+
+/* =============== UTILITIES =============== */
+.section-title {
+  text-align: center;
+  font-weight: 800;
+  margin-bottom: 50px;
+  font-size: 2.5rem;
+}
+
+.fade-in {
+  animation: fadeIn 1s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

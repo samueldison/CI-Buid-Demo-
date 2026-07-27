@@ -1,0 +1,57 @@
+# syntax=docker/dockerfile:1
+
+ARG BASE_IMAGE=bellsoft/liberica-openjdk-alpine:17.0.12
+
+# ====================================
+# Stage 1 - Extract Spring Boot Layers
+# ====================================
+FROM ${BASE_IMAGE} AS builder
+
+WORKDIR /build
+
+# Copy the executable Spring Boot JAR
+COPY target/*.jar app.jar
+
+# Extract Spring Boot layered JAR
+RUN java -Djarmode=layertools -jar app.jar extract
+
+
+# ==================
+# Stage 2 - Runtime
+# ==================
+FROM ${BASE_IMAGE}
+
+LABEL org.opencontainers.image.title="DevSecOps-api" \
+      org.opencontainers.image.description="Spring Boot API" \
+      org.opencontainers.image.version="1.0.0"
+
+ENV APP_HOME=/app \
+    JAVA_OPTS="-XX:+UseContainerSupport \
+               -XX:InitialRAMPercentage=25 \
+               -XX:MaxRAMPercentage=75 \
+               -XX:+ExitOnOutOfMemoryError"
+
+WORKDIR ${APP_HOME}
+
+# Create non-root user
+RUN addgroup -S spring && \
+    adduser -S spring -G spring
+
+# Copy extracted layers with proper ownership
+COPY --chown=spring:spring --from=builder /build/dependencies/ ./
+COPY --chown=spring:spring --from=builder /build/spring-boot-loader/ ./
+COPY --chown=spring:spring --from=builder /build/snapshot-dependencies/ ./
+COPY --chown=spring:spring --from=builder /build/application/ ./
+
+USER spring
+
+EXPOSE 8084
+
+# Spring Boot Actuator is enabled
+HEALTHCHECK --interval=30s \
+            --timeout=5s \
+            --start-period=30s \
+            --retries=3 \
+CMD wget -qO- http://localhost:8084/actuator/health || exit 1
+
+ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS org.springframework.boot.loader.launch.JarLauncher"]
