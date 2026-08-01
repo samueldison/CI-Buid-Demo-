@@ -48,30 +48,51 @@ def buildMavenProject() {
 }
 
 def deployToNexus() {
-    echo "====++++Deploying To Nexus++++===="
+    echo "==== Deploying to Nexus ===="
+
     dir('rhino-horn') {
-        withMaven(globalMavenSettingsConfig: 'settings', jdk: '', maven: 'maven-3.9.9', mavenSettingsConfig: '', traceability: true) {
-            sh 'mvn deploy'
+
+        withCredentials([
+            usernamePassword(
+                credentialsId: 'nexus-credentials',
+                usernameVariable: 'MAVEN_USERNAME',
+                passwordVariable: 'MAVEN_PASSWORD'
+            )
+        ]) {
+
+            withMaven(
+                maven: 'maven-3.9.9',
+                mavenSettingsConfig: 'maven-settings',
+                traceability: true
+            ) {
+                sh 'mvn clean deploy'
+            }
         }
     }
 }
 
-def sonarCloudAnalysis() {
-    echo "====++++Sonar Code Quality++++===="
-    withSonarQubeEnv('SonarCloud') {
-        def SCANNER_HOME = tool name: 'SonarScanner', type: 'hudson.plugins.sonar.SonarRunnerInstallation'
-        try {
-            sh """
-                ${SCANNER_HOME}/bin/sonar-scanner \
-                    -Dsonar.organization=${env.SONAR_ORG} \
-                    -Dsonar.projectKey=${env.SONAR_PROJECT_KEY} \
-                    -Dsonar.projectVersion=${params.PROJECT_VERSION} \
-                    -Dsonar.java.binaries=rhino-horn/target \
-                    -Dsonar.sources=src \
-                    -Dsonar.java.source=17
-            """
-        } catch (Exception e) {
-            error("Unexpected error during SonarCloud analysis: ${e.getMessage()}")
+
+def sonarqubeAnalysis() {
+    echo "==== SonarQube Code Quality Analysis ===="
+
+    dir('rhino-horn') {
+        withSonarQubeEnv('SonarQube') {
+
+            withMaven(
+                maven: 'maven-3.9.9',
+                mavenSettingsConfig: 'maven-settings'
+            ) {
+                try {
+                    sh '''
+                        mvn verify \
+                          org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
+                          -Dsonar.SONAR_PROJECT_NAME=safari_rhino-horn \
+                          -Dsonar.projectName=safari_rhino-horn
+                    '''
+                } catch (Exception e) {
+                    error("SonarQube analysis failed: ${e.getMessage()}")
+                }
+            }
         }
     }
 }
@@ -169,6 +190,7 @@ def trivyScan() {
     return scanStatus
 }
 
+/*
 def uploadTrivyReportToS3() {
     echo "====++++ Uploading Trivy Report to S3 ++++===="
     def reportPath  = "trivy-reports/trivy-report.html"
@@ -189,11 +211,12 @@ def uploadTrivyReportToS3() {
         echo "Trivy report not found or empty; skipping S3 upload."
     }
 }
+*/
 
 def pushDockerImage() {
     echo "====++++ Pushing Docker Image to Registry ++++===="
     def dockerRegistryUrl = 'https://index.docker.io/v1/'
-    withDockerRegistry([credentialsId: 'dockerId', url: dockerRegistryUrl]) {
+    withDockerRegistry([credentialsId: 'docker_Id', url: dockerRegistryUrl]) {
         retry(3) {
             sh "docker push ${env.IMAGE_NAME}"
 
@@ -251,6 +274,7 @@ def cleanup() {
     }
 }
 
+/*
 def getEmailForUsers(String userIdsCsv) {
     def emailMap = [
         'user1': 'samuelhaddison71@gmail.com',
@@ -265,5 +289,6 @@ def getEmailForUsers(String userIdsCsv) {
     }
     return emails.join(',')
 }
+*/
 
 return this

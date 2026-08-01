@@ -36,7 +36,7 @@ pipeline {
     }
 
     environment {
-        GIT_URL           = 'https://github.com/Orion83-h/Safari.git'
+        GIT_URL           = 'https://github.com/samueldison/CI-Buid-Demo-.git'
         GIT_CREDS         = 'gitcreds'
         DOCKERFILE        = 'rhino-horn/Dockerfile.v1'
         DOCKER_NAMESPACE  = 'colanta06'
@@ -46,7 +46,7 @@ pipeline {
         IMAGE_TAG         = "v${MAJOR_VERSION}.${MINOR_VERSION}.${env.PATCH_VERSION}"
         IMAGE_NAME        = "${DOCKER_NAMESPACE}/${env.JOB_NAME.replaceAll('/', '-').toLowerCase()}:${env.IMAGE_TAG}"
         CONTAINER_NAME    = "rhino-horn-${params.ENVIRONMENT}"
-        SONAR_ORG         = 'safari'
+        SONAR_PROJECT_NAME = 'safari_rhino-horn'
         SONAR_PROJECT_KEY = 'safari_rhino-horn'
         TRIVY_CACHE_DIR   = '/tmp/trivy'
         TRIVY_SCAN_STATUS = '-1'
@@ -102,10 +102,10 @@ pipeline {
             }
         }
 
-        stage('SonarCloud Analysis') {
+        stage('SonarQube Analysis') {
             steps {
                 script {
-                    gv.sonarCloudAnalysis()
+                    gv.sonarqubeAnalysis()
                 }
             }
         }
@@ -140,7 +140,7 @@ pipeline {
                 }
             }
         }
-
+        /*
         stage('Upload Trivy Report to S3') {
             steps {
                 script {
@@ -148,7 +148,7 @@ pipeline {
                 }
             }
         }
-
+        */
         stage('Push Docker Image') {
             when { expression { trivyPassed() } }
             steps {
@@ -176,7 +176,8 @@ pipeline {
             }
         }
     }
-
+    
+    /*
     post {
         success {
             script {
@@ -233,7 +234,7 @@ pipeline {
                 )
             }
         }
-
+       
         always {
             cleanWs(
                 cleanWhenNotBuilt: false,
@@ -243,4 +244,5 @@ pipeline {
             )
         }
     }
+    */
 }
