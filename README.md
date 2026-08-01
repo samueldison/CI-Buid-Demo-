@@ -9,3 +9,5 @@ kubectl get deployment rhino-horn -n mlops -o yaml | grep -A 20
 
 # Check the actual deployed container ports and probe config
 kubectl get deployment rhino-horn -n mlops -o yaml | grep -A 40
+
+# All set for first build
